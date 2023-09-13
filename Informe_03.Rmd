@@ -1,0 +1,80 @@
+---
+title: "Informe_03"
+author: "Jhon Alexander Rojas Tavera"
+date: "2023-09-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+```
+
+
+```{r}
+# Cargar las bibliotecas necesarias
+library(ggplot2)
+
+# Pasos sugeridos
+
+# a. Generar la población
+n <- 1000
+proporcion_enfermas <- 0.5
+poblacion <- rbinom(n, 1, proporcion_enfermas)
+
+# b. Función para obtener una muestra aleatoria y calcular el estimador
+muestra_y_estimador <- function(n) {
+  muestra <- sample(poblacion, n, replace = TRUE)
+  estimador_proporcion <- mean(muestra)
+  return(estimador_proporcion)
+}
+
+# c. Realizar 500 simulaciones y analizar los resultados
+n_simulaciones <- 500
+resultados_estimador <- replicate(n_simulaciones, muestra_y_estimador(n))
+# Calcular simetría y sesgo de los resultados
+simetria <- mean(resultados_estimador)
+sesgo <- mean(resultados_estimador - proporcion_enfermas)
+# Calcular variabilidad
+varianza <- var(resultados_estimador)
+
+cat("Simetría de los resultados:", simetria, "\n")
+cat("Sesgo de los resultados:", sesgo, "\n")
+cat("Varianza de los resultados:", varianza, "\n")
+
+# d. Repetir para diferentes tamaños de muestra
+tamanos_muestra <- c(5, 10, 15, 20, 30, 50, 60, 100, 200, 500)
+resultados_normalidad <- data.frame(Tamano_Muestra = tamanos_muestra)
+for (n in tamanos_muestra) {
+  resultados <- replicate(n_simulaciones, muestra_y_estimador(n))
+  # Realizar pruebas de normalidad
+  shapiro_test <- shapiro.test(resultados)
+  resultados_normalidad[names(shapiro_test)] <- shapiro_test$p.value
+  # Crear gráfico de normalidad
+  gg <- ggplot(data.frame(Estimador = resultados), aes(x = Estimador)) +
+    geom_density() +
+    ggtitle(paste("Distribución de Estimadores para n =", n))
+  print(gg)
+}
+
+# e. Repetir la simulación para diferentes proporciones de plantas enfermas
+proporciones_enfermas <- c(0.1, 0.5, 0.9)
+resultados_proporciones <- data.frame(Proporcion_Enfermas = proporciones_enfermas)
+for (proporcion in proporciones_enfermas) {
+  poblacion <- rbinom(n, 1, proporcion)
+  resultados <- replicate(n_simulaciones, muestra_y_estimador(n))
+  # Calcular simetría y sesgo
+  simetria <- mean(resultados)
+  sesgo <- mean(resultados - proporcion)
+  # Calcular variabilidad
+  varianza <- var(resultados)
+  resultados_proporciones[paste("Simetria_", proporcion)] <- simetria
+  resultados_proporciones[paste("Sesgo_", proporcion)] <- sesgo
+  resultados_proporciones[paste("Varianza_", proporcion)] <- varianza
+}
+
+# Comentario sobre los resultados obtenidos
+cat("Comentario sobre los resultados obtenidos:", "\n")
+# ... (Añadir tus comentarios sobre los resultados aquí)
+
+```
