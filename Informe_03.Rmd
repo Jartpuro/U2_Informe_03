@@ -2,79 +2,116 @@
 title: "Informe_03"
 author: "Jhon Alexander Rojas Tavera"
 date: "2023-09-13"
-output: html_document
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+  pdf_document:
+    toc: yes
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(ggplot2)
 ```
 
+<h2>Generar población </h2>
+```{r }
+# Población de n=1000 con un 50% de individuos enfermos
+poblacion <- rbinom(1000, size = 1, prob = 0.5)
+```
+
+<h2>Función para obtener una muestra aleatoria y calcular p^ </h2>
+```{r }
+# Función para obtener una muestra aleatoria y calcular p^
+obtener_muestra_p <- function(n, poblacion) {
+  muestra <- sample(poblacion, n, replace = TRUE)
+  estimador_p <- sum(muestra) / n
+  return(estimador_p)
+}
+
+```
+
+<h2>Analizar resultados para n=500 </h2>
+```{r }
+# Realizar 500 simulaciones y almacenar los resultados
+resultados <- replicate(500, obtener_muestra_p(500, poblacion))
+
+# Histograma de los resultados
+hist(resultados, col = rainbow(10), main = "Histograma de p^ (n=500)")
+
+```
+
+<h2>Comparar tamaños de muestra en cuanto a la normalidad </h2>
+```{r }
+
+# Tamaños de muestra a probar
+tamanos_muestra <- c(5, 10, 15, 20, 30, 50, 60, 100, 200, 500)
+
+# Función para realizar pruebas de normalidad y generar gráficos QQ
+prueba_normalidad <- function(n, poblacion) {
+  resultados <- replicate(500, obtener_muestra_p(n, poblacion))
+  shapiro_test <- shapiro.test(resultados)
+  
+  # Gráfico QQ
+  qqnorm(resultados, main = paste("Gráfico QQ (n=", n, ")"))
+  qqline(resultados)
+  
+  return(shapiro_test)
+}
+
+# Realizar pruebas de normalidad y generar gráficos QQ
+for (n in tamanos_muestra) {
+  cat("Tamaño de muestra:", n, "\n")
+  shapiro_test_result <- prueba_normalidad(n, poblacion)
+  print(shapiro_test_result)
+}
+
+
+```
+
+<h3>Simulación con 10% de enfermos</h3>
+
+```{r }
+# Generar una población con 10% de individuos enfermos
+poblacion_10porciento <- rbinom(1000, size = 1, prob = 0.1)
+
+
+
+```
+
+<h3>Simulación con 90% de enfermos</h3>
+```{r }
+# Población con 90% de individuos enfermos
+poblacion_90porciento <- rbinom(1000, size = 1, prob = 0.9)
+
+
+```
+
+<h2>Comaparativa de Valores p Tamaño muestra </h2>
+```{r,echo=FALSE,  fig.show='hide'}
+# Resultados de las pruebas de normalidad para diferentes tamaños de muestra
+resultados_normalidad <- matrix(NA, nrow = length(tamanos_muestra), ncol = 2)
+colnames(resultados_normalidad) <- c("Tamaño de muestra", "Valor p")
+
+# Realizar pruebas de normalidad y almacenar los resultados
+for (i in 1:length(tamanos_muestra)) {
+  n <- tamanos_muestra[i]
+  shapiro_test_result <- prueba_normalidad(n, poblacion)
+  resultados_normalidad[i, ] <- c(n, shapiro_test_result$p.value)
+}
+```
 
 ```{r}
-# Cargar las bibliotecas necesarias
-library(ggplot2)
-
-# Pasos sugeridos
-
-# a. Generar la población
-n <- 1000
-proporcion_enfermas <- 0.5
-poblacion <- rbinom(n, 1, proporcion_enfermas)
-
-# b. Función para obtener una muestra aleatoria y calcular el estimador
-muestra_y_estimador <- function(n) {
-  muestra <- sample(poblacion, n, replace = TRUE)
-  estimador_proporcion <- mean(muestra)
-  return(estimador_proporcion)
-}
-
-# c. Realizar 500 simulaciones y analizar los resultados
-n_simulaciones <- 500
-resultados_estimador <- replicate(n_simulaciones, muestra_y_estimador(n))
-# Calcular simetría y sesgo de los resultados
-simetria <- mean(resultados_estimador)
-sesgo <- mean(resultados_estimador - proporcion_enfermas)
-# Calcular variabilidad
-varianza <- var(resultados_estimador)
-
-cat("Simetría de los resultados:", simetria, "\n")
-cat("Sesgo de los resultados:", sesgo, "\n")
-cat("Varianza de los resultados:", varianza, "\n")
-
-# d. Repetir para diferentes tamaños de muestra
-tamanos_muestra <- c(5, 10, 15, 20, 30, 50, 60, 100, 200, 500)
-resultados_normalidad <- data.frame(Tamano_Muestra = tamanos_muestra)
-for (n in tamanos_muestra) {
-  resultados <- replicate(n_simulaciones, muestra_y_estimador(n))
-  # Realizar pruebas de normalidad
-  shapiro_test <- shapiro.test(resultados)
-  resultados_normalidad[names(shapiro_test)] <- shapiro_test$p.value
-  # Crear gráfico de normalidad
-  gg <- ggplot(data.frame(Estimador = resultados), aes(x = Estimador)) +
-    geom_density() +
-    ggtitle(paste("Distribución de Estimadores para n =", n))
-  print(gg)
-}
-
-# e. Repetir la simulación para diferentes proporciones de plantas enfermas
-proporciones_enfermas <- c(0.1, 0.5, 0.9)
-resultados_proporciones <- data.frame(Proporcion_Enfermas = proporciones_enfermas)
-for (proporcion in proporciones_enfermas) {
-  poblacion <- rbinom(n, 1, proporcion)
-  resultados <- replicate(n_simulaciones, muestra_y_estimador(n))
-  # Calcular simetría y sesgo
-  simetria <- mean(resultados)
-  sesgo <- mean(resultados - proporcion)
-  # Calcular variabilidad
-  varianza <- var(resultados)
-  resultados_proporciones[paste("Simetria_", proporcion)] <- simetria
-  resultados_proporciones[paste("Sesgo_", proporcion)] <- sesgo
-  resultados_proporciones[paste("Varianza_", proporcion)] <- varianza
-}
-
-# Comentario sobre los resultados obtenidos
-cat("Comentario sobre los resultados obtenidos:", "\n")
-# ... (Añadir tus comentarios sobre los resultados aquí)
-
+# Gráfico de barras de los valores p de normalidad
+barplot(resultados_normalidad[, "Valor p"], names.arg = resultados_normalidad[, "Tamaño de muestra"],
+        col = rainbow(length(tamanos_muestra)), main = "Valores p de Normalidad por Tamaño de Muestra",
+        xlab = "Tamaño de Muestra", ylab = "Valor p", ylim = c(0, 1))
 ```
+
+
+
+<h2>Conclusión </h2>
+De acuerdo al proceso realizado, la visualización obtenida como ultimo paso nos permite identificar que a medida que el tamaño de la muestra aumenta, las estimaciones se vuelven más precisas y se aproximan a una distribución normal. El porcentaje de individuos enfermos en la población inicial afecta la simetría y normalidad de los resultados.
+
+<h2>Repositorio Github</h2>
+<p>Si quieres consultar el codigó de este informe puedes validarlo en este enlace:</p> <href> https://github.com/Jartpuro/U2_Informe_03</href>
